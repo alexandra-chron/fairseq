@@ -1,0 +1,11 @@
+en
+be
+bs
+sl
+mk
+sk
+uk
+hr
+sr
+bg
+pl

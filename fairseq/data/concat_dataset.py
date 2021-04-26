@@ -28,22 +28,22 @@ class ConcatDataset(FairseqDataset):
         if isinstance(sample_ratios, int):
             sample_ratios = [sample_ratios] * len(self.datasets)
         self.sample_ratios = sample_ratios
-        self.cumulative_sizes = self.cumsum(self.datasets, sample_ratios)
+        self.cumulated_sizes = self.cumsum(self.datasets, sample_ratios)
         self.real_sizes = [len(d) for d in self.datasets]
 
     def __len__(self):
-        return self.cumulative_sizes[-1]
+        return self.cumulated_sizes[-1]
 
     def __getitem__(self, idx):
         dataset_idx, sample_idx = self._get_dataset_and_sample_index(idx)
         return self.datasets[dataset_idx][sample_idx]
 
     def _get_dataset_and_sample_index(self, idx: int):
-        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        dataset_idx = bisect.bisect_right(self.cumulated_sizes, idx)
         if dataset_idx == 0:
             sample_idx = idx
         else:
-            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+            sample_idx = idx - self.cumulated_sizes[dataset_idx - 1]
         sample_idx = sample_idx % self.real_sizes[dataset_idx]
         return dataset_idx, sample_idx
 
@@ -65,7 +65,7 @@ class ConcatDataset(FairseqDataset):
         return np.max(self.size(index))
 
     def attr(self, attr: str, index: int):
-        dataset_idx = bisect.bisect_right(self.cumulative_sizes, index)
+        dataset_idx = bisect.bisect_right(self.cumulated_sizes, index)
         return getattr(self.datasets[dataset_idx], attr, None)
 
     @property
@@ -107,7 +107,7 @@ class ConcatDataset(FairseqDataset):
 
     def prefetch(self, indices):
         frm = 0
-        for to, ds in zip(self.cumulative_sizes, self.datasets):
+        for to, ds in zip(self.cumulated_sizes, self.datasets):
             real_size = len(ds)
             if getattr(ds, "supports_prefetch", False):
                 ds.prefetch([(i - frm) % real_size for i in indices if frm <= i < to])
